@@ -8,6 +8,7 @@ variable (R : Type*) [Ring R]
 #check (add_assoc : ∀ a b c : R, a + b + c = a + (b + c))
 #check (add_comm : ∀ a b : R, a + b = b + a)
 #check (zero_add : ∀ a : R, 0 + a = a)
+-- #check (sub_self : ∀ a : R, a - a = 0)
 #check (neg_add_cancel : ∀ a : R, -a + a = 0)
 #check (mul_assoc : ∀ a b c : R, a * b * c = a * (b * c))
 #check (mul_one : ∀ a : R, a * 1 = a)
@@ -53,34 +54,64 @@ theorem neg_add_cancel_left (a b : R) : -a + (a + b) = b := by
 
 -- Prove these:
 theorem add_neg_cancel_right (a b : R) : a + b + -b = a := by
-  sorry
+  rw [add_assoc, add_comm b, neg_add_cancel, add_comm, zero_add]
 
 theorem add_left_cancel {a b c : R} (h : a + b = a + c) : b = c := by
-  sorry
+  calc
+    b = 0 + b := by rw [zero_add b]
+    _ = (-a + a) + b := by rw [neg_add_cancel]
+    _ = -a + (a + b) := by rw [add_assoc]
+    _ = -a + (a + c) := by rw [h]
+    _ = -a + a + c := by rw [← add_assoc]
+    _ = 0 + c := by rw [neg_add_cancel]
+    _ = c := by rw [zero_add]
+
 
 theorem add_right_cancel {a b c : R} (h : a + b = c + b) : a = c := by
-  sorry
+  calc
+    a = 0 + a := by rw [zero_add a]
+    _ = a + 0 := by rw [add_comm]
+    _ = a + (-b + b) := by rw [neg_add_cancel]
+    _ = a + (b + -b) := by rw [← add_comm b]
+    _ = a + b + -b := by rw [← add_assoc]
+    _ = c + b + -b := by rw [h]
+    _ = c + (b + -b) := by rw [add_assoc]
+    _ = c + (-b + b) := by rw [add_comm b]
+    _ = c + 0 := by rw [neg_add_cancel]
+    _ = 0 + c := by rw [add_comm]
+    _ = c := by rw [zero_add c]
+
 
 theorem mul_zero (a : R) : a * 0 = 0 := by
   have h : a * 0 + a * 0 = a * 0 + 0 := by
     rw [← mul_add, add_zero, add_zero]
   rw [add_left_cancel h]
 
+
 theorem zero_mul (a : R) : 0 * a = 0 := by
-  sorry
+  have h : 0 * a + 0 * a = 0 * a + 0 := by
+    -- 0 * a + 0 * a = (0 + 0) * a = 0 * a = 0 * a + 0
+    rw [← add_mul, add_zero, add_zero]
+  rw [add_left_cancel h]
 
 theorem neg_eq_of_add_eq_zero {a b : R} (h : a + b = 0) : -a = b := by
-  sorry
+  have h2 : 0 = a + -a := by rw [← neg_add_cancel, add_comm]
+  have h3 : a + b = a + -a := by rw [h, h2]
+  rw [add_left_cancel h3]
+
 
 theorem eq_neg_of_add_eq_zero {a b : R} (h : a + b = 0) : a = -b := by
-  sorry
+  have zero_is_b_plus_a : 0 = b + a := by rw [← h, add_comm]
+  have b_plus_a_is_zero : b + a = 0 := by rw [← zero_is_b_plus_a]
+  rw [neg_eq_of_add_eq_zero b_plus_a_is_zero]
 
 theorem neg_zero : (-0 : R) = 0 := by
   apply neg_eq_of_add_eq_zero
   rw [add_zero]
 
 theorem neg_neg (a : R) : - -a = a := by
-  sorry
+  have h : -a + a = 0 := by rw [neg_add_cancel]
+  rw [neg_eq_of_add_eq_zero h]
 
 end MyRing
 
@@ -103,13 +134,19 @@ namespace MyRing
 variable {R : Type*} [Ring R]
 
 theorem self_sub (a : R) : a - a = 0 := by
-  sorry
+  calc
+    a - a = a + -a := by rw [sub_eq_add_neg]
+    _ = -a + a := by rw [add_comm]
+    _ = 0 := by rw [neg_add_cancel]
 
 theorem one_add_one_eq_two : 1 + 1 = (2 : R) := by
   norm_num
 
 theorem two_mul (a : R) : 2 * a = a + a := by
-  sorry
+  calc
+    2 * a = (1 + 1) * a := by rw [← one_add_one_eq_two]
+    _ = 1 * a + 1 * a := by rw [add_mul]
+    _ = a + a := by rw [one_mul]
 
 end MyRing
 
@@ -131,16 +168,51 @@ variable {G : Type*} [Group G]
 
 namespace MyGroup
 
+lemma lemma1 {a : G} (h : a * a = a) : a = 1 := by
+  calc
+    a = 1 * a := by rw [one_mul]
+    _ = (a⁻¹ * a) * a := by rw [inv_mul_cancel]
+    _ = a⁻¹ * (a * a) := by rw [mul_assoc]
+    _ = a⁻¹ * a := by rw [h]
+    _ = 1 := by rw [inv_mul_cancel]
+
+lemma lemma2 (a : G) : a * a⁻¹ = (a * a⁻¹) * (a * a⁻¹) := by
+  calc
+    a * a⁻¹ = a * (1 * a⁻¹) := by rw [one_mul]
+    _ = a * 1 * a⁻¹ := by rw [← mul_assoc]
+    _ = a * (a⁻¹ * a) * a⁻¹ := by rw [← inv_mul_cancel]
+    _ = a * a⁻¹ * a * a⁻¹ := by rw [← mul_assoc]
+    _ = (a * a⁻¹) * (a * a⁻¹) := by rw [mul_assoc]
+
 theorem mul_inv_cancel (a : G) : a * a⁻¹ = 1 := by
-  sorry
+  have h : (a * a⁻¹) * (a * a⁻¹) = a * a⁻¹ := by rw [← lemma2]
+  apply lemma1 h
+
 
 theorem mul_one (a : G) : a * 1 = a := by
-  sorry
+  calc
+    a * 1 = a * (a⁻¹ * a) := by rw [← inv_mul_cancel]
+    _ = (a * a⁻¹) * a := by rw [mul_assoc]
+    _ = 1 * a := by rw [mul_inv_cancel]
+    _ = a := by rw [one_mul]
+
+lemma lemma3 (a b : G) : (a * b)⁻¹ * a * b = 1 := by
+  calc
+    (a * b)⁻¹ * a * b = (a * b)⁻¹ * (a * b) := by rw [mul_assoc]
+    _ = 1 := by rw [inv_mul_cancel]
 
 theorem mul_inv_rev (a b : G) : (a * b)⁻¹ = b⁻¹ * a⁻¹ := by
-  sorry
+  calc
+    (a * b)⁻¹ = (a * b)⁻¹ * 1:= by rw [mul_one]
+    _ = (a * b)⁻¹ * (a * a⁻¹) := by rw [mul_inv_cancel]
+    _ = (a * b)⁻¹ * a * a⁻¹ := by rw [← mul_assoc]
+    _ = (a * b)⁻¹ * a * 1 * a⁻¹ := by rw [mul_one]
+    _ = (a * b)⁻¹ * a * (b * b⁻¹) * a⁻¹ := by rw [mul_inv_cancel]
+    _ = ((a * b)⁻¹ * a * b) * b⁻¹ * a⁻¹ := by rw [← mul_assoc]
+    _ = 1 * b⁻¹ * a⁻¹ := by rw [lemma3]
+    _ = b⁻¹ * a⁻¹ := by rw [one_mul]
+
 
 end MyGroup
 
 end
-
