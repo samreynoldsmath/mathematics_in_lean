@@ -150,7 +150,16 @@ section
 variable (f : ℝ → ℝ)
 
 example (h : ¬FnHasUb f) : ∀ a, ∃ x, f x > a := by
-  sorry
+  intro a
+  by_contra not_exist_x_st_fx_gt_a
+  apply h
+  use a
+  change ∀ x, f x ≤ a
+  intro x
+  apply le_of_not_gt
+  intro a_lt_fx
+  apply not_exist_x_st_fx_gt_a
+  use x
 
 example (h : ¬∀ a, ∃ x, f x > a) : FnHasUb f := by
   push_neg at h
@@ -162,7 +171,10 @@ example (h : ¬FnHasUb f) : ∀ a, ∃ x, f x > a := by
   exact h
 
 example (h : ¬Monotone f) : ∃ x y, x ≤ y ∧ f y < f x := by
-  sorry
+  by_contra h'
+  apply h
+  push_neg at h'
+  exact h'
 
 example (h : ¬FnHasUb f) : ∀ a, ∃ x, f x > a := by
   contrapose! h
@@ -171,7 +183,7 @@ example (h : ¬FnHasUb f) : ∀ a, ∃ x, f x > a := by
 example (x : ℝ) (h : ∀ ε > 0, x ≤ ε) : x ≤ 0 := by
   contrapose! h
   use x / 2
-  constructor <;> linarith
+  constructor <;> linarith -- will learn next section
 
 end
 
