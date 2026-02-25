@@ -106,11 +106,7 @@ example : 0 ≤ a ^ 2 := by
   exact sq_nonneg a
 
 example (h : a ≤ b) : c - exp b ≤ c - exp a := by
-  -- refine tsub_le_tsub ?_ ?_
-  -- apply? -- does not work for me...
   apply add_le_add_left
-  -- apply?
-  -- refine neg_le_neg_iff.mpr ?_
   apply neg_le_neg_iff.mpr
   apply exp_le_exp.mpr
   exact h
@@ -149,11 +145,12 @@ lemma lem₂ : -a*b ≤ (a^2 + b^2)/2 := by
 
 example : |a*b| ≤ (a^2 + b^2)/2 := by
   apply abs_le'.mpr
-
-  -- apply lem₁
-  -- apply lem₂
-  -- ???????
-  sorry
+  constructor
+  . exact lem₁ a b
+  . have : -(a * b) = -a * b := by ring
+    calc
+      -(a * b) = -a * b := by exact this
+      _ ≤ (a ^ 2 + b ^ 2) / 2 := by exact lem₂ a b
 
 #check abs_le
 #check abs_le'

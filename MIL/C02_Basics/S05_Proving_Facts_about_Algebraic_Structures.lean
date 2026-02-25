@@ -83,14 +83,33 @@ example : x ⊔ y = y ⊔ x := by
     apply sup_le
     apply le_sup_right
     apply le_sup_left
-  -- repeat -- why doesn't this work?
-  --   apply sup_le
-  --   apply le_sup_right
-  --   apply le_sup_left
 
 example : x ⊔ y ⊔ z = x ⊔ (y ⊔ z) := by
-  -- TODO
-  sorry
+  apply le_antisymm
+  . show (x ⊔ y) ⊔ z ≤ x ⊔ (y ⊔ z)
+    apply sup_le
+    . show x ⊔ y ≤ x ⊔ (y ⊔ z)
+      apply sup_le
+      . show x ≤ x ⊔ (y ⊔ z)
+        apply le_sup_left
+      . show y ≤ x ⊔ (y ⊔ z)
+        apply le_sup_of_le_right
+        apply le_sup_left
+    . show z ≤ x ⊔ (y ⊔ z)
+      apply le_sup_of_le_right
+      apply le_sup_right
+  . show x ⊔ (y ⊔ z) ≤ (x ⊔ y) ⊔ z
+    apply sup_le
+    . show x ≤ (x ⊔ y) ⊔ z
+      apply le_sup_of_le_left
+      apply le_sup_left
+    . show y ⊔ z ≤ (x ⊔ y) ⊔ z
+      apply sup_le
+      . show y ≤ (x ⊔ y) ⊔ z
+        apply le_sup_of_le_left
+        apply le_sup_right
+      . show z ≤ (x ⊔ y) ⊔ z
+        apply le_sup_right
 
 theorem absorb1 : x ⊓ (x ⊔ y) = x := by
   apply le_antisymm

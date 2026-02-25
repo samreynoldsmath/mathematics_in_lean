@@ -101,13 +101,12 @@ example : (a + b) * (a + b) = a * a + 2 * (a * b) + b * b :=
 example : (a + b) * (a + b) = a * a + 2 * (a * b) + b * b :=
   calc
     (a + b) * (a + b) = a * a + b * a + (a * b + b * b) := by
-      sorry
-    _ = a * a + (b * a + a * b) + b * b := by
-      sorry
-    _ = a * a + 2 * (a * b) + b * b := by
-      sorry
-
-end
+      rw [mul_add, add_mul, add_mul]
+    _ = (a * a + b * a) + (a * b + b * b) := rfl
+    _ = a * a + (b * a + (a * b + b * b)) := by rw [add_assoc]
+    _ = a * a + ((b * a + a * b) + b * b) := by rw [add_assoc]
+    _ = a * a + (b * a + a * b) + b * b := by rw [add_assoc (a * a)]
+    _ = a * a + 2 * (a * b) + b * b := by rw [mul_comm b a, two_mul]
 
 -- Try these. For the second, use the theorems listed underneath.
 section
@@ -125,16 +124,15 @@ example : (a + b) * (c + d) = a * c + a * d + b * c + b * d := by
 
 example (a b : ℝ) : (a + b) * (a - b) = a ^ 2 - b ^ 2 := by
   calc
-    (a + b) * (a - b) = a * (a - b) + b * (a - b) := by
-      rw [add_mul]
-    _ = a * a - a * b + b * a - b * b := by
-      rw [mul_sub, mul_sub, ← add_sub]
-    _ = a * a - b * b + (b * a - a * b) := by
-      ring -- fuck it
-    _ = a * a - b * b := by
-      rw [mul_comm b a, sub_self, add_zero]
-    _ = a ^ 2 - b ^ 2 := by
-      rw [pow_two, pow_two]
+    (a + b) * (a - b) = a * (a - b) + b * (a - b) := by rw [add_mul]
+    _ = a * a - a * b + b * a - b * b := by rw [mul_sub, mul_sub, ← add_sub]
+    _ = ((a * a + -(a * b)) + b * a) - b * b := rfl
+    _ = (a * a + (-(a * b) + b * a)) - b * b := by rw [add_assoc (a * a)]
+    _ = (a * a + (b * a + -(a * b))) - b * b := by rw [add_comm (-(a * b))]
+    _ = (a * a + (a * b + -(a * b))) - b * b := by rw [mul_comm a b]
+    _ = (a * a + (a * b - a * b)) - b * b := rfl
+    _ = a * a - b * b := by rw [sub_self, add_zero]
+    _ = a ^ 2 - b ^ 2 := by rw [pow_two, pow_two]
 
 
 #check pow_two a

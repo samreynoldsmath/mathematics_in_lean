@@ -263,8 +263,33 @@ example (h : x ^ 2 = 1) : x = 1 ∨ x = -1 := by
       _ = -1 := by rw [zero_add]
 
 example (h : x ^ 2 = y ^ 2) : x = y ∨ x = -y := by
-  -- TODO
-  sorry
+  have poly_root : x ^ 2 - y ^ 2 = 0 := by --linarith
+    calc
+      x ^ 2 - y ^ 2 = y ^ 2 - y ^ 2 := by rw [h]
+      _ = 0 := by apply sub_self
+  have factored : (x - y) * (x + y) = 0 := by
+    calc
+      (x - y) * (x + y) = x ^ 2 - y ^ 2 := by ring
+      _ = 0 := by exact poly_root
+  rcases eq_zero_or_eq_zero_of_mul_eq_zero factored with h₁ | h₂
+  . left
+    -- linarith
+    calc
+      x = x + 0 := by rw [add_zero]
+      _ = x + (y + -y) := by rw [add_neg_cancel]
+      _ = x + (-y + y) := by rw [add_comm y]
+      _ = (x + -y) + y := by rw [add_assoc]
+      _ = (x - y) + y := by ring -- somehow this works??
+      _ = 0 + y := by rw [h₁]
+      _ = y := by rw [zero_add]
+  . right
+    -- linarith
+    calc
+      x = x + 0 := by rw [add_zero]
+      _ = x + (y + -y) := by rw [add_neg_cancel]
+      _ = (x + y) + -y := by rw [add_assoc]
+      _ = 0 + -y := by rw [h₂]
+      _ = -y := by rw [zero_add]
 
 end
 
