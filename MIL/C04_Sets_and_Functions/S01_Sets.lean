@@ -24,7 +24,7 @@ example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u := by
   exact ⟨h xsu.1, xsu.2⟩
 
 example (h : s ⊆ t) : s ∩ u ⊆ t ∩ u :=
-  fun x ⟨xs, xu⟩ ↦ ⟨h xs, xu⟩
+  fun _ ⟨xs, xu⟩ ↦ ⟨h xs, xu⟩
 
 example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   intro x hx
@@ -44,7 +44,18 @@ example : s ∩ (t ∪ u) ⊆ s ∩ t ∪ s ∩ u := by
   · right; exact ⟨xs, xu⟩
 
 example : s ∩ t ∪ s ∩ u ⊆ s ∩ (t ∪ u) := by
-  sorry
+  show (s ∩ t) ∪ (s ∩ u) ⊆ s ∩ (t ∪ u)
+  rintro x h
+  rcases h with ⟨xs, xt⟩ | ⟨xs, xu⟩
+  . constructor
+    . exact xs
+    . left
+      exact xt
+  . constructor
+    . exact xs
+    . right
+      exact xu
+
 example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   intro x xstu
   have xs : x ∈ s := xstu.1.1
@@ -64,7 +75,21 @@ example : (s \ t) \ u ⊆ s \ (t ∪ u) := by
   rintro (xt | xu) <;> contradiction
 
 example : s \ (t ∪ u) ⊆ (s \ t) \ u := by
-  sorry
+  rintro x ⟨xs, xntu⟩
+  simp
+  constructor
+  . constructor
+    . show x ∈ s
+      exact xs
+    . show x ∉ t
+      intro xt
+      have : x ∈ t ∪ u := by exact mem_union_left u xt
+      exact xntu this
+  . show x ∉ u
+    intro xu
+    have : x ∈ t ∪ u := by exact mem_union_right t xu
+    exact xntu this
+
 example : s ∩ t = t ∩ s := by
   ext x
   simp only [mem_inter_iff]
@@ -73,7 +98,7 @@ example : s ∩ t = t ∩ s := by
   · rintro ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
 example : s ∩ t = t ∩ s :=
-  Set.ext fun x ↦ ⟨fun ⟨xs, xt⟩ ↦ ⟨xt, xs⟩, fun ⟨xt, xs⟩ ↦ ⟨xs, xt⟩⟩
+  Set.ext fun _ ↦ ⟨fun ⟨xs, xt⟩ ↦ ⟨xt, xs⟩, fun ⟨xt, xs⟩ ↦ ⟨xs, xt⟩⟩
 
 example : s ∩ t = t ∩ s := by ext x; simp [and_comm]
 
@@ -83,18 +108,88 @@ example : s ∩ t = t ∩ s := by
   · rintro x ⟨xt, xs⟩; exact ⟨xs, xt⟩
 
 example : s ∩ t = t ∩ s :=
-    Subset.antisymm sorry sorry
+  -- TODO
+  Subset.antisymm sorry sorry
+
 example : s ∩ (s ∪ t) = s := by
-  sorry
+  ext x
+  constructor
+  . rintro ⟨xs, _⟩
+    exact xs
+  . intro xs
+    have : x ∈ s ∪ t := by
+      left
+      exact xs
+    simp
+    constructor
+    . exact xs
+    . left
+      exact xs
+
 
 example : s ∪ s ∩ t = s := by
-  sorry
+  show s ∪ (s ∩ t) = s
+  ext x
+  constructor
+  . rintro (xs | ⟨xs, _⟩)
+    . exact xs
+    . exact xs
+  . intro xs
+    left
+    exact xs
 
 example : s \ t ∪ t = s ∪ t := by
-  sorry
+  show (s \ t) ∪ t = s ∪ t
+  ext x
+  constructor
+  . rintro (⟨xs, xnt⟩ | xt)
+    . left
+      exact xs
+    . right
+      exact xt
+  . rintro (xs | xt)
+    . simp
+      left
+      exact xs
+    . right
+      exact xt
 
 example : s \ t ∪ t \ s = (s ∪ t) \ (s ∩ t) := by
-  sorry
+  show (s \ t) ∪ (t \ s) = (s ∪ t) \ (s ∩ t)
+  ext x
+  constructor
+  . rintro (⟨xs, xnt⟩ | ⟨xt, xns⟩)
+    . simp
+      constructor
+      . left
+        exact xs
+      . intro _
+        exact xnt
+    . simp
+      constructor
+      . right
+        exact xt
+      . intro _
+        contradiction
+  . rintro ⟨xs | xt, xnst⟩
+    . simp
+      left
+      have xnt: x ∉ t := by
+        intro xt
+        have : x ∈ s ∩ t := by exact mem_inter xs xt
+        exact xnst this
+      constructor
+      . exact xs
+      . exact xnt
+    . simp
+      right
+      have xns : x ∉ s := by
+        intro xs
+        have : x ∈ s ∩ t := by exact mem_inter xs xt
+        exact xnst this
+      constructor
+      . exact xt
+      . exact xns
 
 def evens : Set ℕ :=
   { n | Even n }
@@ -103,7 +198,7 @@ def odds : Set ℕ :=
   { n | ¬Even n }
 
 example : evens ∪ odds = univ := by
-  rw [evens, odds]
+  -- rw [evens, odds]
   ext n
   simp [-Nat.not_even_iff_odd]
   apply Classical.em
@@ -114,8 +209,24 @@ example (x : ℕ) (h : x ∈ (∅ : Set ℕ)) : False :=
 example (x : ℕ) : x ∈ (univ : Set ℕ) :=
   trivial
 
+-- As an exercise, prove the following inclusion. Use intro n to unfold the
+-- definition of subset, and use the simplifier to reduce the set-theoretic
+-- constructions to logic. We also recommend using the theorems
+-- Nat.Prime.eq_two_or_odd and Nat.odd_iff.
+#check Nat.Prime.eq_two_or_odd
+#check Nat.odd_iff
+
 example : { n | Nat.Prime n } ∩ { n | n > 2 } ⊆ { n | ¬Even n } := by
-  sorry
+  intro n
+  simp
+  rintro nprime n_gt_two
+  rcases Nat.Prime.eq_two_or_odd nprime with n_two | n_odd
+  . have : 2 < 2 := by
+      calc
+        2 < n := by exact n_gt_two
+        _ = 2 := by exact n_two
+    contradiction
+  . exact Nat.odd_iff.mpr n_odd
 
 #print Prime
 
@@ -151,10 +262,15 @@ section
 variable (ssubt : s ⊆ t)
 
 example (h₀ : ∀ x ∈ t, ¬Even x) (h₁ : ∀ x ∈ t, Prime x) : ∀ x ∈ s, ¬Even x ∧ Prime x := by
-  sorry
+  intro x xs
+  constructor
+  . exact h₀ x (ssubt xs)
+  . exact h₁ x (ssubt xs)
 
 example (h : ∃ x ∈ s, ¬Even x ∧ Prime x) : ∃ x ∈ t, Prime x := by
-  sorry
+  rcases h with ⟨x, ⟨xs, xodd, xprime⟩⟩
+  have xt : x ∈ t := by exact ssubt xs
+  use x
 
 end
 
@@ -193,7 +309,30 @@ example : (⋂ i, A i ∩ B i) = (⋂ i, A i) ∩ ⋂ i, B i := by
 
 
 example : (s ∪ ⋂ i, A i) = ⋂ i, A i ∪ s := by
-  sorry
+  show s ∪ (⋂ i, A i) = ⋂ i, (A i ∪ s)
+  ext x
+  simp
+  constructor
+  . intro h
+    rcases h with xs | xA
+    . intro i
+      right
+      exact xs
+    . intro i
+      left
+      exact xA i
+  . intro h
+    -- have : ∀ (i : I), (x ∈ A i ∨ x ∈ s) := h -- sanity
+    show (x ∈ s) ∨ (∀ (i : I), x ∈ A i)
+    by_cases xs : x ∈ s
+    . left
+      exact xs
+    . right
+      intro i
+      have : x ∈ A i ∨ x ∈ s := by exact h i
+      rcases (h i) with xA | xs
+      . exact xA
+      . contradiction
 
 def primes : Set ℕ :=
   { x | Nat.Prime x }
@@ -213,8 +352,23 @@ example : (⋂ p ∈ primes, { x | ¬p ∣ x }) ⊆ { x | x = 1 } := by
   simp
   apply Nat.exists_prime_and_dvd
 
+-- Try solving the following example, which is similar. If you start typing
+-- eq_univ, tab completion will tell you that apply eq_univ_of_forall is a
+-- good way to start the proof. We also recommend using the theorem
+-- Nat.exists_infinite_primes.
+
+#check Nat.exists_infinite_primes
+
 example : (⋃ p ∈ primes, { x | x ≤ p }) = univ := by
-  sorry
+  apply eq_univ_of_forall
+  simp
+  intro x
+  rcases (Nat.exists_infinite_primes x) with h
+  rcases h with ⟨p, ⟨x_le_p, p_prime⟩⟩
+  use p
+  constructor
+  . exact p_prime
+  . exact x_le_p
 
 end
 
@@ -235,4 +389,3 @@ example : ⋂₀ s = ⋂ t ∈ s, t := by
   rfl
 
 end
-
