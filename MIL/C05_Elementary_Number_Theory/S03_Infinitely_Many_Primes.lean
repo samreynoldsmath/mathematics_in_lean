@@ -42,21 +42,35 @@ theorem exists_prime_factor {n : Nat} (h : 2 ≤ n) : ∃ p : Nat, p.Prime ∧ p
     use p, pp
     apply pdvd.trans mdvdn
 
+lemma fac_ge_one {n : Nat} : 1 ≤ Nat.factorial n := by
+  induction' n with n h
+  . simp
+  have : 0 < n + 1 := by linarith
+  calc
+    1 ≤ Nat.factorial n := by exact h
+    _ ≤ (n + 1) * Nat.factorial n := by
+      exact Nat.le_mul_of_pos_left n.factorial this
+
 theorem primes_infinite : ∀ n, ∃ p > n, Nat.Prime p := by
   intro n
   have : 2 ≤ Nat.factorial n + 1 := by
-    sorry
+    calc
+      2 = 1 + 1 := by rfl
+      _ ≤ Nat.factorial n + 1 := by exact add_le_add_right fac_ge_one 1
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   refine ⟨p, ?_, pp⟩
   show p > n
   by_contra ple
   push_neg at ple
-  have : p ∣ Nat.factorial n := by
-    sorry
-  have : p ∣ 1 := by
-    sorry
+  have p_dvd_nfac: p ∣ Nat.factorial n := by
+    apply Nat.dvd_factorial (Nat.Prime.pos pp) ple
+  have p_dvd_one : p ∣ 1 := by
+    exact (Nat.dvd_add_iff_right p_dvd_nfac).mpr pdvd
   show False
-  sorry
+  have p_eq_one : p = 1 := by exact Nat.eq_one_of_dvd_one p_dvd_one
+  have p_ne_one : p ≠ 1 := by exact Nat.Prime.ne_one pp
+  contradiction
+
 open Finset
 
 section
@@ -89,19 +103,33 @@ section
 variable {α : Type*} [DecidableEq α] (r s t : Finset α)
 
 example : (r ∪ s) ∩ (r ∪ t) = r ∪ s ∩ t := by
-  sorry
+  ext x
+  simp
+  tauto
+
 example : (r \ s) \ t = r \ (s ∪ t) := by
-  sorry
+  ext x
+  simp
+  tauto
 
 end
 
 example (s : Finset ℕ) (n : ℕ) (h : n ∈ s) : n ∣ ∏ i ∈ s, i :=
   Finset.dvd_prod_of_mem _ h
 
+-- We also need to know that the converse holds in the case where n is prime
+-- and s is a set of primes. To show that, we need the following lemma,
+-- which you should be able to prove using the theorem
+-- Nat.Prime.eq_one_or_self_of_dvd.
+#check Nat.Prime.eq_one_or_self_of_dvd
+
 theorem _root_.Nat.Prime.eq_of_dvd_of_prime {p q : ℕ}
       (prime_p : Nat.Prime p) (prime_q : Nat.Prime q) (h : p ∣ q) :
     p = q := by
-  sorry
+  rcases Nat.Prime.eq_one_or_self_of_dvd prime_q p h with p_eq_one | p_eq_q
+  . have : p ≠ 1 := by exact Nat.Prime.ne_one prime_p
+    contradiction
+  . exact p_eq_q
 
 theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     (∀ n ∈ s, Nat.Prime n) → (p ∣ ∏ n ∈ s, n) → p ∈ s := by
@@ -111,7 +139,17 @@ theorem mem_of_dvd_prod_primes {s : Finset ℕ} {p : ℕ} (prime_p : p.Prime) :
     linarith [prime_p.two_le]
   simp [Finset.prod_insert ans, prime_p.dvd_mul] at h₀ h₁
   rw [mem_insert]
-  sorry
+  by_cases pa : p = a
+  . left
+    exact pa
+  . right
+    rcases h₁ with p_dvd_a | p_dvd_prod
+    . have : p = a := by
+        have prime_a : Nat.Prime a := h₀.left
+        exact Nat.Prime.eq_of_dvd_of_prime prime_p prime_a p_dvd_a
+      contradiction
+    . exact ih h₀.right p_dvd_prod
+
 example (s : Finset ℕ) (x : ℕ) : x ∈ s.filter Nat.Prime ↔ x ∈ s ∧ x.Prime :=
   mem_filter
 
@@ -125,15 +163,25 @@ theorem primes_infinite' : ∀ s : Finset Nat, ∃ p, Nat.Prime p ∧ p ∉ s :=
     simp [s'_def]
     apply h
   have : 2 ≤ (∏ i ∈ s', i) + 1 := by
-    sorry
+    simp
+    show 0 < (∏ i ∈ s', i)
+    apply Finset.prod_pos
+    intro n ns'
+    have : n.Prime := by
+      exact mem_s'.mp ns'
+    exact Nat.Prime.pos this
   rcases exists_prime_factor this with ⟨p, pp, pdvd⟩
   have : p ∣ ∏ i ∈ s', i := by
-    sorry
+    have : p ∈ s' := by exact mem_s'.mpr pp
+    exact dvd_prod_of_mem _ this
   have : p ∣ 1 := by
     convert Nat.dvd_sub pdvd this
     simp
   show False
-  sorry
+  have p_eq_one : p = 1 := by exact Nat.eq_one_of_dvd_one this
+  have p_ne_one : p ≠ 1 := by exact Nat.Prime.ne_one pp
+  contradiction
+
 theorem bounded_of_ex_finset (Q : ℕ → Prop) :
     (∃ s : Finset ℕ, ∀ k, Q k → k ∈ s) → ∃ n, ∀ k, Q k → k < n := by
   rintro ⟨s, hs⟩
@@ -171,7 +219,14 @@ theorem two_le_of_mod_4_eq_3 {n : ℕ} (h : n % 4 = 3) : 2 ≤ n := by
       norm_num at h
 
 theorem aux {m n : ℕ} (h₀ : m ∣ n) (h₁ : 2 ≤ m) (h₂ : m < n) : n / m ∣ n ∧ n / m < n := by
-  sorry
+  constructor
+  . exact Nat.div_dvd_of_dvd h₀
+  . have : 0 < m := by exact Nat.zero_lt_of_lt h₁
+    apply (Nat.div_lt_iff_lt_mul this).mpr
+    calc
+      n < n * 2 := by linarith
+      _ ≤ n * m := by exact Nat.mul_le_mul_left n h₁
+
 theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
     ∃ p : Nat, p.Prime ∧ p ∣ n ∧ p % 4 = 3 := by
   by_cases np : n.Prime
@@ -224,4 +279,3 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
   have : p = 3 := by
     sorry
   contradiction
-
