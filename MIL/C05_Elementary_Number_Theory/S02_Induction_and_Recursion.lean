@@ -1,6 +1,9 @@
 import Mathlib.Data.Nat.GCD.Basic
 import MIL.Common
 
+#check Nat
+#check Nat.factorial
+
 example (n : Nat) : n.succ ≠ Nat.zero :=
   Nat.succ_ne_zero n
 
@@ -45,10 +48,30 @@ theorem dvd_fac {i n : ℕ} (ipos : 0 < i) (ile : i ≤ n) : i ∣ fac n := by
   rw [h]
   apply dvd_mul_right
 
+-- The following example provides a crude lower bound for the factorial
+-- function. It turns out to be easier to start with a proof by cases, so
+-- that the remainder of the proof starts with the case n = 1. See if you
+-- can complete the argument with a proof by induction using
+-- pow_succ or pow_succ'.
 theorem pow_two_le_fac (n : ℕ) : 2 ^ (n - 1) ≤ fac n := by
   rcases n with _ | n
   · simp [fac]
-  sorry
+  . simp
+    induction' n with n h
+    . simp
+      calc
+        1 ≤ 1 := by exact le_refl 1
+        _ = fac 1 := by exact rfl
+    . show 2 ^ (n + 1) ≤ fac (n + 2)
+      have : 2 ≤ n + 2 := by exact Nat.le_add_left 2 n
+      calc
+        2 ^ (n + 1) = 2 * 2 ^ n := by ring
+        _ ≤ 2 * fac (n + 1) := by exact Nat.mul_le_mul_left 2 h
+        _ = (0 + 2) * fac (n + 1) := by exact rfl
+        _ ≤ (n + 2) * fac (n + 1) := by
+          exact Nat.mul_le_mul_right (fac (n + 1)) this
+        _ = fac (n + 2) := by exact rfl
+
 section
 
 variable {α : Type*} (s : Finset ℕ) (f : ℕ → ℕ) (n : ℕ)
@@ -99,7 +122,11 @@ theorem sum_id (n : ℕ) : ∑ i ∈ range (n + 1), i = n * (n + 1) / 2 := by
   ring
 
 theorem sum_sqr (n : ℕ) : ∑ i ∈ range (n + 1), i ^ 2 = n * (n + 1) * (2 * n + 1) / 6 := by
-  sorry
+  symm; apply Nat.div_eq_of_eq_mul_right (by norm_num : 0 < 6)
+  induction' n with n ih
+  · simp
+  rw [Finset.sum_range_succ, mul_add 6, ← ih]
+  ring
 end
 
 inductive MyNat where
@@ -133,6 +160,7 @@ theorem add_comm (m n : MyNat) : add m n = add n m := by
     rfl
   rw [add, succ_add, ih]
 
+-- TODO
 theorem add_assoc (m n k : MyNat) : add (add m n) k = add m (add n k) := by
   sorry
 theorem mul_add (m n k : MyNat) : mul m (add n k) = add (mul m n) (mul m k) := by
