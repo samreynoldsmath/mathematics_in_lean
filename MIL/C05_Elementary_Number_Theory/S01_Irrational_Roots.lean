@@ -49,26 +49,64 @@ example (a b c : Nat) (h : a * b = a * c) (h' : a ≠ 0) : b = c :=
   -- apply? suggests the following:
   (mul_right_inj' h').mp h
 
+#check mul_right_inj
+#check mul_right_inj'
+
+-- See if you can fill out the proof sketch, using even_of_even_sqr and the
+-- theorem Nat.dvd_gcd.
 example {m n : ℕ} (coprime_mn : m.Coprime n) : m ^ 2 ≠ 2 * n ^ 2 := by
   intro sqr_eq
-  have : 2 ∣ m := by
-    sorry
-  obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp this
+  have two_dvd_m : 2 ∣ m := by
+    apply even_of_even_sqr
+    have : 2 * n ^ 2 = m ^ 2 := by rw [sqr_eq]
+    exact dvd_of_mul_right_eq (n ^ 2) this
+  obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp two_dvd_m
+  have two_neq_zero: 2 ≠ 0 := by norm_num
   have : 2 * (2 * k ^ 2) = 2 * n ^ 2 := by
     rw [← sqr_eq, meq]
     ring
-  have : 2 * k ^ 2 = n ^ 2 :=
-    sorry
-  have : 2 ∣ n := by
-    sorry
-  have : 2 ∣ m.gcd n := by
-    sorry
+  have : 2 * k ^ 2 = n ^ 2 := by
+    exact (Nat.mul_right_inj two_neq_zero).mp this
+  have two_dvd_n : 2 ∣ n := by
+    apply even_of_even_sqr
+    exact dvd_of_mul_right_eq (k ^ 2) this
+  have gcd_mn_one : m.gcd n = 1 := by exact coprime_mn
+  have two_dvd_gcd: 2 ∣ m.gcd n := Nat.dvd_gcd two_dvd_m two_dvd_n
   have : 2 ∣ 1 := by
-    sorry
+    rw [← gcd_mn_one]
+    exact two_dvd_gcd
   norm_num at this
 
 example {m n p : ℕ} (coprime_mn : m.Coprime n) (prime_p : p.Prime) : m ^ 2 ≠ p * n ^ 2 := by
-  sorry
+  -- copy and paste above with a few modifications
+  intro sqr_eq
+  have p_dvd_m : p ∣ m := by
+    apply Nat.Prime.dvd_of_dvd_pow
+    apply prime_p
+    rw [sqr_eq]
+    exact Nat.dvd_mul_right p (n ^ 2)
+  obtain ⟨k, meq⟩ := dvd_iff_exists_eq_mul_left.mp p_dvd_m
+  have p_neq_zero: p ≠ 0 := by
+    exact Nat.Prime.ne_zero prime_p
+  have : p * (p * k ^ 2) = p * n ^ 2 := by
+    rw [← sqr_eq, meq]
+    ring
+  have : p * k ^ 2 = n ^ 2 := by
+    exact (Nat.mul_right_inj p_neq_zero).mp this
+  have p_dvd_n : p ∣ n := by
+    apply Nat.Prime.dvd_of_dvd_pow
+    apply prime_p
+    exact dvd_of_mul_right_eq (k ^ 2) this
+  have gcd_mn_one : m.gcd n = 1 := by exact coprime_mn
+  have p_dvd_gcd: p ∣ m.gcd n := Nat.dvd_gcd p_dvd_m p_dvd_n
+  have : p ∣ 1 := by
+    rw [← gcd_mn_one]
+    exact p_dvd_gcd
+  have p_one: p = 1 := by exact Nat.eq_one_of_dvd_one this
+  have p_ge_one: p > 1 := by exact Nat.Prime.one_lt prime_p
+  have p_ne_one : p ≠ 1 := by exact Ne.symm (Nat.ne_of_lt p_ge_one)
+  contradiction
+
 #check Nat.primeFactorsList
 #check Nat.prime_of_mem_primeFactorsList
 #check Nat.prod_primeFactorsList
@@ -93,9 +131,15 @@ example {m n p : ℕ} (nnz : n ≠ 0) (prime_p : p.Prime) : m ^ 2 ≠ p * n ^ 2 
   intro sqr_eq
   have nsqr_nez : n ^ 2 ≠ 0 := by simpa
   have eq1 : Nat.factorization (m ^ 2) p = 2 * m.factorization p := by
-    sorry
+    simp
   have eq2 : (p * n ^ 2).factorization p = 2 * n.factorization p + 1 := by
-    sorry
+    rw [factorization_mul']
+    rw [factorization_pow']
+    rw [Nat.Prime.factorization']
+    rw [add_comm]
+    apply prime_p
+    exact Nat.Prime.ne_zero prime_p
+    exact nsqr_nez
   have : 2 * m.factorization p % 2 = (2 * n.factorization p + 1) % 2 := by
     rw [← eq1, sqr_eq, eq2]
   rw [add_comm, Nat.add_mul_mod_self_left, Nat.mul_mod_right] at this
@@ -107,14 +151,20 @@ example {m n k r : ℕ} (nnz : n ≠ 0) (pow_eq : m ^ k = r * n ^ k) {p : ℕ} :
   · simp
   have npow_nz : n ^ k ≠ 0 := fun npowz ↦ nnz (pow_eq_zero npowz)
   have eq1 : (m ^ k).factorization p = k * m.factorization p := by
-    sorry
+    exact factorization_pow' m k p
   have eq2 : ((r + 1) * n ^ k).factorization p =
       k * n.factorization p + (r + 1).factorization p := by
-    sorry
+    rw [factorization_mul']
+    rw [factorization_pow']
+    rw [add_comm]
+    exact r.succ_ne_zero
+    exact npow_nz
   have : r.succ.factorization p = k * m.factorization p - k * n.factorization p := by
     rw [← eq1, pow_eq, eq2, add_comm, Nat.add_sub_cancel]
   rw [this]
-  sorry
+  apply Nat.dvd_sub
+  exact Nat.dvd_mul_right k (m.factorization p)
+  exact Nat.dvd_mul_right k (n.factorization p)
+
 
 #check multiplicity
-
