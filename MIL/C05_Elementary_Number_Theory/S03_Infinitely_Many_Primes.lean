@@ -244,15 +244,58 @@ theorem exists_prime_factor_mod_4_eq_3 {n : Nat} (h : n % 4 = 3) :
   have : m % 4 = 3 ∨ n / m % 4 = 3 := by
     apply mod_4_eq_3_or_mod_4_eq_3
     rw [neq, h]
-  rcases this with h1 | h1
-  . sorry
-  . sorry
+  rcases this with h₁ | h₂
+  . by_cases mp : Nat.Prime m
+    . use m
+    . -- use induction hypothesis: m has a prime factor p with p % 4 = 3
+      have : ∃ p : Nat, Nat.Prime p ∧ p ∣ m ∧ p % 4 = 3 := by
+        exact ih m mltn h₁ mp
+      rcases this with ⟨p, prime_p, pdvdm, pmod⟩
+      use p
+      constructor
+      . exact prime_p
+      constructor
+      . apply dvd_trans pdvdm mdvdn
+      . exact pmod
+  . let k := n / m
+    by_cases kp : Nat.Prime k
+    . use k
+      constructor
+      . exact kp
+      constructor
+      . exact Nat.div_dvd_of_dvd mdvdn
+      . exact h₂
+    . -- use induction hypothesis: k has a prime factor with k % 4 = 3
+      have kltn : k < n := by
+        show n / m < n
+        apply Nat.div_lt_of_lt_mul
+        calc
+          n < 2 * n := by linarith
+          _ ≤ m * n := by exact Nat.mul_le_mul_right n mge2
+      have kdvdn : k ∣ n := by exact Nat.div_dvd_of_dvd mdvdn
+      have : ∃ p : Nat, Nat.Prime p ∧ p ∣ k ∧ p % 4 = 3 := by
+        exact ih k kltn h₂ kp
+      rcases this with ⟨p, prime_p, pdvdm, pmod⟩
+      use p
+      constructor
+      . exact prime_p
+      constructor
+      . apply dvd_trans pdvdm kdvdn
+      . exact pmod
+
 example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s := by
   rwa [mem_erase] at h
 
 example (m n : ℕ) (s : Finset ℕ) (h : m ∈ erase s n) : m ≠ n ∧ m ∈ s := by
   simp at h
   assumption
+
+-- We are now ready to prove that there are infinitely many primes congruent
+-- to 3 modulo 4. Fill in the missing parts below.
+-- Our solution uses Nat.dvd_add_iff_left and Nat.dvd_sub' along the way.
+
+#check Nat.dvd_add_iff_left
+#check Nat.dvd_sub'
 
 theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3 := by
   by_contra h
@@ -266,10 +309,13 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
     exact ⟨p, pltn, pp, p4⟩
   rcases this with ⟨s, hs⟩
   have h₁ : ((4 * ∏ i ∈ erase s 3, i) + 3) % 4 = 3 := by
-    sorry
+    simp
   rcases exists_prime_factor_mod_4_eq_3 h₁ with ⟨p, pp, pdvd, p4eq⟩
   have ps : p ∈ s := by
-    sorry
+    rw [← hs p]
+    constructor
+    . exact pp
+    . exact p4eq
   have pne3 : p ≠ 3 := by
     sorry
   have : p ∣ 4 * ∏ i ∈ erase s 3, i := by
@@ -277,5 +323,8 @@ theorem primes_mod_4_eq_3_infinite : ∀ n, ∃ p > n, Nat.Prime p ∧ p % 4 = 3
   have : p ∣ 3 := by
     sorry
   have : p = 3 := by
-    sorry
+    apply Nat.Prime.eq_of_dvd_of_prime
+    exact pp
+    exact Nat.prime_three
+    exact this
   contradiction
