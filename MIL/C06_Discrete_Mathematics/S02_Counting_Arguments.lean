@@ -86,14 +86,44 @@ example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
   convert Finset.sum_range_id (n + 1)
   simp_all
 
+lemma sub_cancel {a b c : Nat} (h₀ : a ≤ c) (h₁ : b ≤ c) (h₂ : c - a = c - b) :
+  a = b := by
+  have : c + a = c + b := by
+    calc
+      c + a = c + (b - b) + a := by simp
+      _ = (c - b) + b + a := by
+        simp
+        exact (Nat.sub_eq_iff_eq_add h₁).mp rfl
+      _ = (c - a) + b + a := by rw [h₂]
+      _ = (c - a) + a + b := by linarith
+      _ = c + (a - a) + b := by
+        simp
+        exact Nat.sub_add_cancel h₀
+      _ = c + b := by simp
+  linarith
+
 example (n : ℕ) : #(triangle n) = (n + 1) * n / 2 := by
   apply Nat.eq_div_of_mul_eq_right (by norm_num)
   let turn (p : ℕ × ℕ) : ℕ × ℕ := (n - 1 - p.1, n - p.2)
+  have turn_inj: Function.Injective turn := by
+    intro x y turnx_turny
+    have coord_eq : n - 1 - x.1 = n - 1 - y.1 ∧ n - x.2 = n - y.2 := by
+      exact Prod.mk_inj.mp turnx_turny
+    have x1_eq_y1: x.1 = y.1 := by
+      have x1le : x.1 ≤ n - 1 := by apply?
+      have : (n - 1) - x.1 = (n - 1) - y.1 := by exact coord_eq.left
+      have : x.1 = y.1 := by
+        apply?
+    have x2_eq_y2: x.2 = y.2 := by
+      have : n - x.2 = n - y.2 := by exact coord_eq.right
+      sorry
+    exact Prod.ext x1_eq_y1 x2_eq_y2
   calc 2 * #(triangle n)
-      = #(triangle n) + #(triangle n) := by
-          sorry
+      = #(triangle n) + #(triangle n) := by ring
     _ = #(triangle n) + #(triangle n |>.image turn) := by
-          sorry
+          dsimp!
+          rw [card_image_of_injective]
+          exact turn_inj
     _ = #(range n ×ˢ range (n + 1)) := by
           sorry
     _ = (n + 1) * n := by
